@@ -26,19 +26,19 @@
   function dataContoh() {
     var d = dataKosong();
     d.toko = { namaDariTema: true, nama: NAMA_TEMA, alamat: 'Jl. Merdeka No. 12, Bandung', telp: '0812-0000-1234', footer: 'Terima kasih, sampai jumpa lagi!', rekening: 'Bank Contoh 0000000000 a.n. ' + NAMA_TEMA };
-    d.kategori = ['Kopi', 'Non-Kopi', 'Makanan', 'Camilan'];
+    d.kategori = [];
     var p = [
-      ['Kopi Susu Gula Aren', 'Kopi', 40, [['Reguler', 18000], ['Large', 23000]]],
-      ['Americano', 'Kopi', 50, [['Hot', 15000], ['Ice', 17000]]],
-      ['Cappuccino', 'Kopi', 30, [['Reguler', 22000]]],
-      ['Matcha Latte', 'Non-Kopi', 25, [['Reguler', 22000], ['Large', 27000]]],
-      ['Cokelat Panas', 'Non-Kopi', 20, [['Reguler', 18000]]],
-      ['Teh Lemon', 'Non-Kopi', 60, [['Reguler', 10000]]],
-      ['Nasi Goreng Kampung', 'Makanan', 15, [['Biasa', 22000], ['Spesial', 28000]]],
-      ['Mie Goreng', 'Makanan', 4, [['Biasa', 18000]]],
-      ['Roti Bakar', 'Camilan', 18, [['Cokelat', 15000], ['Keju', 17000], ['Campur', 19000]]],
-      ['Kentang Goreng', 'Camilan', 22, [['Reguler', 14000]]],
-      ['Pisang Goreng', 'Camilan', 0, [['Isi 5', 12000]]]
+      ['Kopi Susu Gula Aren', '', 40, [['Reguler', 18000], ['Large', 23000]]],
+      ['Americano', '', 50, [['Hot', 15000], ['Ice', 17000]]],
+      ['Cappuccino', '', 30, [['Reguler', 22000]]],
+      ['Matcha Latte', '', 25, [['Reguler', 22000], ['Large', 27000]]],
+      ['Cokelat Panas', '', 20, [['Reguler', 18000]]],
+      ['Teh Lemon', '', 60, [['Reguler', 10000]]],
+      ['Nasi Goreng Kampung', '', 15, [['Biasa', 22000], ['Spesial', 28000]]],
+      ['Mie Goreng', '', 4, [['Biasa', 18000]]],
+      ['Roti Bakar', '', 18, [['Cokelat', 15000], ['Keju', 17000], ['Campur', 19000]]],
+      ['Kentang Goreng', '', 22, [['Reguler', 14000]]],
+      ['Pisang Goreng', '', 0, [['Isi 5', 12000]]]
     ];
     d.produk = p.map(function (x, i) {
       return { id: 'p' + (i + 1), nama: x[0], kategori: x[1], stok: x[2], foto: KONFIG.fotoProduk[x[0]] || '', varian: x[3].map(function (v) { return { nama: v[0], harga: v[1] }; }) };
@@ -76,6 +76,16 @@
     // Migrasi data lama: nama bawaan lama dianggap belum diubah pengguna.
     if (D.toko.namaDariTema === undefined) D.toko.namaDariTema = D.toko.nama === 'Kopi Senja' || D.toko.nama === 'Toko Saya';
     if (D.toko.namaDariTema) D.toko.nama = NAMA_TEMA;
+    // Migrasi: hapus kategori bawaan contoh agar pengguna bebas atur kategori manual
+    if (!D._kategoriDibersihkan) {
+      var bawaan = ['Kopi', 'Non-Kopi', 'Makanan', 'Camilan'];
+      D.kategori = (D.kategori || []).filter(function (k) { return bawaan.indexOf(k) < 0; });
+      D.produk.forEach(function (x) {
+        if (bawaan.indexOf(x.kategori) >= 0) x.kategori = '';
+      });
+      D._kategoriDibersihkan = true;
+      simpan();
+    }
   }
 
   // ---------- Tema (customizer Maliki Studio, lihat tema.css & tema.js) ----------
@@ -329,6 +339,7 @@
   function stokTerpakai(pid) { return keranjang.filter(function (i) { return i.pid === pid; }).reduce(function (s, i) { return s + i.qty; }, 0); }
 
   function renderPOS() {
+    if (katAktif !== 'Semua' && D.kategori.indexOf(katAktif) < 0) katAktif = 'Semua';
     var kats = ['Semua'].concat(D.kategori);
     $('#chipKategori').innerHTML = kats.map(function (k) { var n = k === 'Semua' ? D.produk.length : D.produk.filter(function (p) { return p.kategori === k; }).length;
       return '<button class="chip' + (k === katAktif ? ' aktif' : '') + '" data-k="' + esc(k) + '" aria-pressed="' + (k === katAktif) + '">' + esc(k) + '<span class="chip-n">' + n + '</span></button>'; }).join('');
@@ -482,13 +493,14 @@
   }
 
   function formProduk(p) {
-    var baru = !p; p = p || { nama: '', kategori: D.kategori[0] || '', stok: 0, varian: [{ nama: 'Reguler', harga: 0 }] };
+    var baru = !p; p = p || { nama: '', kategori: '', stok: 0, varian: [{ nama: 'Reguler', harga: 0 }] };
     function barisV(v) { return '<div class="varian-baris"><input placeholder="Nama varian" value="' + esc(v.nama) + '" required><input type="number" min="0" placeholder="Harga" value="' + v.harga + '" required><button type="button" aria-label="Hapus varian">×</button></div>'; }
+    var optsKat = D.kategori.map(function (k) { return '<option value="' + esc(k) + '">'; }).join('');
     dialog('<h3>' + (baru ? 'Tambah' : 'Ubah') + ' produk</h3><div class="form">' +
       '<label>Nama<input id="fNama" required value="' + esc(p.nama) + '"></label>' +
-      '<label>Kategori<select id="fKat">' + D.kategori.map(function (k) { return '<option' + (k === p.kategori ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select></label>' +
+      '<label>Kategori (ketik baru atau pilih)<div style="display:flex;gap:8px;align-items:center"><input id="fKat" list="listKat" value="' + esc(p.kategori || '') + '" placeholder="Ketik atau pilih kategori" style="flex:1"><datalist id="listKat">' + optsKat + '</datalist><button type="button" class="tombol" id="fKelolaKat" style="white-space:nowrap;padding:0 12px">Kelola</button></div></label>' +
       '<label>Stok<input id="fStok" type="number" min="0" value="' + p.stok + '"></label>' +
-      '<div class="foto-baris"><span class="thumb foto-pratinjau" id="fFotoPra" data-nada="' + nadaDari(p.kategori + p.nama) + '">' + (p.foto ? '<img class="ilus foto-produk" src="' + esc(p.foto) + '" alt="">' : '') + '</span><label>Foto produk (opsional)<input id="fFoto" type="file" accept="image/*"></label><button type="button" class="tautan" id="fFotoHapus">Hapus foto</button></div>' +
+      '<div class="foto-baris"><span class="thumb foto-pratinjau" id="fFotoPra" data-nada="' + nadaDari((p.kategori || '') + p.nama) + '">' + (p.foto ? '<img class="ilus foto-produk" src="' + esc(p.foto) + '" alt="">' : '') + '</span><label>Foto produk (opsional)<input id="fFoto" type="file" accept="image/*"></label><button type="button" class="tautan" id="fFotoHapus">Hapus foto</button></div>' +
       '<div><b class="kecil">Varian &amp; harga</b><div id="fVarian" class="form" style="margin-top:6px">' + p.varian.map(barisV).join('') + '</div>' +
       '<button type="button" class="tautan" id="fTambahV">+ varian</button></div></div>' +
       '<div class="dlg-aksi">' + (baru ? '' : '<button type="button" class="tombol bahaya" id="fHapus" style="margin-right:auto">Hapus</button>') +
@@ -499,29 +511,78 @@
         $('#fFoto', f).onchange = function () { var fl = this.files[0]; if (fl) kecilkanFoto(fl, function (u) { fotoBaru = u; $('#fFotoPra', f).innerHTML = '<img class="ilus foto-produk" src="' + u + '" alt="">'; }); };
         $('#fFotoHapus', f).onclick = function () { fotoBaru = ''; $('#fFoto', f).value = ''; $('#fFotoPra', f).innerHTML = ''; };
         $('#fTambahV', f).onclick = function () { $('#fVarian', f).insertAdjacentHTML('beforeend', barisV({ nama: '', harga: 0 })); ikatHapus(); };
-        if (!baru) $('#fHapus', f).onclick = function () { if (confirm('Hapus ' + p.nama + '?')) { D.produk = D.produk.filter(function (x) { return x.id !== p.id; }); simpan(); tutupDialog(); renderKelola(); } };
+        $('#fKelolaKat', f).onclick = function () {
+          var draftVarian = $$('.varian-baris', f).map(function (r) { var i = $$('input', r); return { nama: i[0].value.trim() || 'Reguler', harga: Math.max(0, +i[1].value || 0) }; });
+          var draft = {
+            id: p.id,
+            nama: $('#fNama', f).value,
+            kategori: $('#fKat', f).value,
+            stok: Math.max(0, parseInt($('#fStok', f).value, 10) || 0),
+            foto: fotoBaru,
+            varian: draftVarian.length ? draftVarian : [{ nama: 'Reguler', harga: 0 }]
+          };
+          formKategori(function () { formProduk(draft); });
+        };
+        if (!baru) $('#fHapus', f).onclick = function () { if (confirm('Hapus ' + p.nama + '?')) { D.produk = D.produk.filter(function (x) { return x.id !== p.id; }); simpan(); tutupDialog(); renderKelola(); renderPOS(); } };
         $('#fSimpan', f).onclick = function () {
           var nama = $('#fNama', f).value.trim();
           var varian = $$('.varian-baris', f).map(function (r) { var i = $$('input', r); return { nama: i[0].value.trim() || 'Reguler', harga: Math.max(0, +i[1].value || 0) }; });
           if (!nama) return toast('Nama produk wajib diisi');
-          if (!D.kategori.length) return toast('Buat kategori dulu');
-          var data = { nama: nama, kategori: $('#fKat', f).value, stok: Math.max(0, parseInt($('#fStok', f).value, 10) || 0), foto: fotoBaru, varian: varian };
+          var kat = $('#fKat', f).value.trim();
+          if (kat && D.kategori.indexOf(kat) < 0) {
+            D.kategori.push(kat);
+          }
+          var data = { nama: nama, kategori: kat, stok: Math.max(0, parseInt($('#fStok', f).value, 10) || 0), foto: fotoBaru, varian: varian };
           if (baru) D.produk.push(Object.assign({ id: uid() }, data)); else Object.assign(p, data);
-          simpan(); tutupDialog(); renderKelola(); toast('Produk disimpan');
+          simpan(); tutupDialog(); renderKelola(); renderPOS(); toast('Produk disimpan');
         };
       });
   }
 
-  function formKategori() {
+  function formKategori(cbTutup) {
     function isi() {
-      return '<h3>Kategori</h3><ul class="daftar-kasir">' + D.kategori.map(function (k, i) {
-        var n = D.produk.filter(function (p) { return p.kategori === k; }).length;
-        return '<li><span>' + esc(k) + ' <span class="redup kecil">(' + n + ' produk)</span></span><button type="button" class="tautan" data-h="' + i + '"' + (n ? ' disabled title="Masih dipakai"' : '') + '>Hapus</button></li>';
-      }).join('') + '</ul><div class="form sebaris" style="grid-template-columns:1fr auto"><input id="kBaru" placeholder="Kategori baru"><button type="button" class="tombol" id="kTambah">Tambah</button></div><div class="dlg-aksi"><button class="tombol utama" value="ok">Selesai</button></div>';
+      return '<h3>Kelola Kategori</h3><p class="redup kecil" style="margin-top:-6px">Hapus atau tambah kategori secara manual.</p><ul class="daftar-kasir">' +
+        (D.kategori.length ? D.kategori.map(function (k, i) {
+          var n = D.produk.filter(function (p) { return p.kategori === k; }).length;
+          return '<li><span>' + esc(k) + (n ? ' <span class="redup kecil">(' + n + ' produk)</span>' : '') + '</span><button type="button" class="tautan" style="color:var(--merah,#e11d48)" data-h="' + i + '">Hapus</button></li>';
+        }).join('') : '<li class="redup">Belum ada kategori.</li>') +
+        '</ul><div class="form sebaris" style="grid-template-columns:1fr auto"><input id="kBaru" placeholder="Kategori baru"><button type="button" class="tombol" id="kTambah">Tambah</button></div><div class="dlg-aksi"><button class="tombol utama" type="button" id="kSelesai">Selesai</button></div>';
     }
     function ikat(f) {
-      $('#kTambah', f).onclick = function () { var v = $('#kBaru', f).value.trim(); if (v && D.kategori.indexOf(v) < 0) { D.kategori.push(v); simpan(); dialog(isi(), ikat); } };
-      $$('[data-h]', f).forEach(function (b) { b.onclick = function () { D.kategori.splice(+b.dataset.h, 1); simpan(); dialog(isi(), ikat); }; });
+      $('#kTambah', f).onclick = function () {
+        var v = $('#kBaru', f).value.trim();
+        if (v && D.kategori.indexOf(v) < 0) {
+          D.kategori.push(v);
+          simpan();
+          dialog(isi(), ikat);
+          renderKelola();
+          renderPOS();
+          toast('Kategori ditambahkan');
+        }
+      };
+      $$('[data-h]', f).forEach(function (b) {
+        b.onclick = function () {
+          var idx = +b.dataset.h;
+          var k = D.kategori[idx];
+          if (!k) return;
+          var n = D.produk.filter(function (p) { return p.kategori === k; }).length;
+          var pesan = 'Hapus kategori "' + k + '"?';
+          if (n > 0) pesan += '\n(' + n + ' produk di kategori ini akan diubah menjadi tanpa kategori)';
+          if (confirm(pesan)) {
+            D.kategori.splice(idx, 1);
+            D.produk.forEach(function (pr) { if (pr.kategori === k) pr.kategori = ''; });
+            simpan();
+            dialog(isi(), ikat);
+            renderKelola();
+            renderPOS();
+            toast('Kategori dihapus');
+          }
+        };
+      });
+      $('#kSelesai', f).onclick = function () {
+        tutupDialog();
+        if (typeof cbTutup === 'function') cbTutup();
+      };
     }
     dialog(isi(), ikat);
   }
@@ -649,7 +710,7 @@
 
     $('#cariKelola').oninput = renderKelola;
     $('#btnTambahProduk').onclick = function () { formProduk(null); };
-    $('#btnKategori').onclick = formKategori;
+    $('#btnKategori').onclick = function () { formKategori(); };
     $('#tabelProduk').onclick = function (e) {
       var ed = e.target.closest('[data-edit]'), st = e.target.closest('[data-stok]');
       if (ed) formProduk(D.produk.find(function (p) { return p.id === ed.dataset.edit; }));
