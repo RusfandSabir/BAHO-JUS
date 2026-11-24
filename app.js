@@ -5,7 +5,7 @@
 
   // ---------- KONFIG gambar: ganti logo/foto cukup di sini (atau timpa berkas di img/) ----------
   var KONFIG = {
-    logo: 'img/logo.svg',                // logo toko: sidebar, layar masuk, struk. '' = pakai ikon bawaan
+    logo: 'logo baho jus.jpg',           // logo toko: sidebar, layar masuk, struk. '' = pakai ikon bawaan
     fotoContoh: 'img/produk-contoh.svg', // placeholder foto produk (rasio 1:1)
     fotoProduk: {}                       // foto produk contoh per nama, mis. { 'Mie Goreng': 'img/mie.jpg' }
   };
@@ -27,11 +27,12 @@
     var d = {
   "toko": {
     "namaDariTema": false,
-    "nama": "Nature Jus",
+    "nama": "Baho Jus",
     "alamat": "Lorong Pelangi, Bahodopi, Kab. Morowali",
     "telp": "082293527209",
     "footer": "Terima kasih, sampai jumpa lagi!",
-    "rekening": "Bank Contoh 0000000000 a.n. Nature Jus",
+    "rekening": "Bank Contoh 0000000000 a.n. Baho Jus",
+    "logo": "logo baho jus.jpg",
     "qris": ""
   },
   "kategori": [
@@ -139,7 +140,7 @@
   ],
   "transaksi": [],
   "nomor": 0,
-  "_versi": "nature-jus-v1"
+  "_versi": "baho-jus-v1"
 };
     return JSON.parse(JSON.stringify(d));
   }
@@ -147,9 +148,10 @@
   var D;
   function muat() {
     try { D = JSON.parse(localStorage.getItem(KUNCI)); } catch (e) { D = null; }
-    // Otomatis muat data Nature Jus jika data kosong atau masih versi lama
-    if (!D || !D.produk || D._versi !== 'nature-jus-v1') {
+    // Otomatis muat data Baho Jus jika data kosong atau masih versi lama
+    if (!D || !D.produk || D._versi !== 'baho-jus-v1') {
       D = dataContoh();
+      D._versi = 'baho-jus-v1';
       simpan();
     }
   }
