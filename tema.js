@@ -1,2 +1,2 @@
 /* TEMA — diubah otomatis oleh customizer Maliki Studio */
-window.TEMA = { nama: "Kopi Senja", mode: "terang" }; // mode: "terang" | "gelap" | "auto"
+window.TEMA = { nama: "Nature Jus", mode: "terang" }; // mode: "terang" | "gelap" | "auto"
