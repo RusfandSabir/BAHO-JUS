@@ -143,6 +143,15 @@
           <label>Telepon<input name="telp"></label>
           <label>Catatan kaki struk<input name="footer"></label>
           <label>Nama bank &amp; no. rekening (transfer)<input name="rekening"></label>
+          <label>Logo Toko
+            <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
+              <img id="praLogoToko" src="img/logo.svg" alt="Logo" style="width:56px;height:56px;object-fit:contain;background:#fff;border:1px solid var(--garis);border-radius:var(--r-kecil);padding:4px">
+              <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+                <input type="file" id="fLogo" accept="image/*">
+                <button type="button" class="tautan" id="fHapusLogo" style="text-align:left;color:var(--merah,#e11d48);font-size:13px">Gunakan logo bawaan</button>
+              </div>
+            </div>
+          </label>
           <label>Barcode QRIS
             <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
               <img id="praQrisToko" src="qris.svg" alt="QRIS" style="width:68px;height:68px;object-fit:contain;background:#fff;border:1px solid var(--garis);border-radius:var(--r-kecil);padding:4px">

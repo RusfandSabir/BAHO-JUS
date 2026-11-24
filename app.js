@@ -308,13 +308,35 @@
   window.__ilusCadangan = function (id) { var p = D.produk.filter(function (x) { return x.id === id; })[0]; return p ? ilustrasiSvg(p) : ''; };
   // Logo: tampil di .merek bila gambar termuat; gagal dimuat -> inisial nama toko
   function pasangLogo() {
-    if (!KONFIG.logo) return;
-    $$('.merek .logo').forEach(function (svg) {
-      if (svg.getAttribute('data-logo-siap')) return; svg.setAttribute('data-logo-siap', '1');
-      var w = svg.getAttribute('width'), img = new Image(); img.className = 'logo logo-img'; img.alt = ''; img.width = w; img.height = w;
-      img.onload = function () { svg.style.display = 'none'; svg.parentNode.insertBefore(img, svg); };
-      img.onerror = function () { var sp = document.createElement('span'); sp.className = 'logo logo-inisial'; sp.setAttribute('aria-hidden', 'true'); sp.textContent = inisial((D && D.toko.nama) || NAMA_TEMA); sp.style.width = sp.style.height = w + 'px'; svg.style.display = 'none'; svg.parentNode.insertBefore(sp, svg); };
-      img.src = KONFIG.logo;
+    var src = (D && D.toko && D.toko.logo) || KONFIG.logo;
+    $$('.merek').forEach(function (merek) {
+      var svg = merek.querySelector('svg.logo');
+      var img = merek.querySelector('.logo-img');
+      var sp = merek.querySelector('.logo-inisial');
+      if (src) {
+        if (!img) {
+          var w = svg ? svg.getAttribute('width') : '32';
+          img = new Image(); img.className = 'logo logo-img'; img.alt = ''; img.width = w; img.height = w;
+          if (svg) svg.parentNode.insertBefore(img, svg); else merek.prepend(img);
+        }
+        img.onload = function () { if (svg) svg.style.display = 'none'; if (sp) sp.style.display = 'none'; img.style.display = ''; };
+        img.onerror = function () {
+          img.style.display = 'none';
+          if (!sp) {
+            sp = document.createElement('span'); sp.className = 'logo logo-inisial'; sp.setAttribute('aria-hidden', 'true');
+            merek.insertBefore(sp, img);
+          }
+          sp.textContent = inisial((D && D.toko.nama) || NAMA_TEMA);
+          sp.style.width = sp.style.height = img.width + 'px';
+          sp.style.display = '';
+          if (svg) svg.style.display = 'none';
+        };
+        img.src = src;
+      } else {
+        if (img) img.style.display = 'none';
+        if (sp) sp.style.display = 'none';
+        if (svg) svg.style.display = '';
+      }
     });
   }
   function kecilkanFoto(file, cb) {
@@ -554,7 +576,8 @@
   // ---------- Struk 58mm ----------
   function cetak(trx) {
     var t = D.toko;
-    $('#struk').innerHTML = '<div class="tengah">' + (KONFIG.logo ? '<img class="struk-logo" src="' + esc(KONFIG.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '') + '<h4>' + esc(t.nama) + '</h4>' + (t.alamat ? '<div>' + esc(t.alamat) + '</div>' : '') + (t.telp ? '<div>' + esc(t.telp) + '</div>' : '') + '</div>' +
+    var logoSrc = (t && t.logo) || KONFIG.logo;
+    $('#struk').innerHTML = '<div class="tengah">' + (logoSrc ? '<img class="struk-logo" src="' + esc(logoSrc) + '" alt="" onerror="this.style.display=\'none\'">' : '') + '<h4>' + esc(t.nama) + '</h4>' + (t.alamat ? '<div>' + esc(t.alamat) + '</div>' : '') + (t.telp ? '<div>' + esc(t.telp) + '</div>' : '') + '</div>' +
       '<div class="gr"></div><div>' + trx.id + '</div><div>' + fmtWaktu(trx.waktu) + '</div><div>Kasir: ' + esc(trx.kasir) + '</div><div class="gr"></div>' +
       trx.items.map(function (i) { return '<div>' + esc(i.nama) + (i.varian ? ' (' + esc(i.varian) + ')' : '') + '</div><div class="br"><span>' + i.qty + ' x ' + rp(i.harga) + '</span><span>' + rp(i.qty * i.harga) + '</span></div>'; }).join('') +
       '<div class="gr"></div><div class="br"><span>Subtotal</span><span>' + rp(trx.subtotal) + '</span></div>' +
@@ -734,10 +757,16 @@
   function renderAtur() {
     var f = $('#formToko');
     ['nama', 'alamat', 'telp', 'footer', 'rekening'].forEach(function (k) { f.elements[k].value = D.toko[k] || ''; });
+    var imgL = $('#praLogoToko'); if (imgL) imgL.src = D.toko.logo || KONFIG.logo || 'img/logo.svg';
+    var fL = $('#fLogo'); if (fL) fL.value = '';
     var imgQ = $('#praQrisToko'); if (imgQ) imgQ.src = D.toko.qris || 'qris.svg';
     var fQ = $('#fQris'); if (fQ) fQ.value = '';
     $('#daftarKasirAtur').innerHTML = D.kasir.map(function (k) {
-      return '<li><span><b>' + esc(k.nama) + '</b> <span class="lencana">' + k.peran + '</span></span>' + (k.id === pengguna.id ? '<span class="redup kecil">sedang masuk</span>' : '<button class="tautan" data-hk="' + k.id + '">Hapus</button>') + '</li>';
+      return '<li><span><b>' + esc(k.nama) + '</b> <span class="lencana">' + k.peran + '</span></span>' +
+        '<div style="display:flex;gap:6px">' +
+        '<button type="button" class="tautan" data-ek="' + k.id + '">Ubah</button>' +
+        (k.id === pengguna.id ? '<span class="redup kecil">sedang masuk</span>' : '<button type="button" class="tautan bahaya" data-hk="' + k.id + '">Hapus</button>') +
+        '</div></li>';
     }).join('');
   }
 
@@ -827,6 +856,26 @@
       if (D.toko.nama !== namaLama) D.toko.namaDariTema = false;
       simpan(); $('#namaTokoNav').textContent = D.toko.nama; toast('Profil toko disimpan');
     };
+    var fL = $('#fLogo');
+    if (fL) fL.onchange = function () {
+      var fl = this.files[0];
+      if (fl) bacaFotoQris(fl, function (u) {
+        D.toko.logo = u;
+        var p = $('#praLogoToko'); if (p) p.src = u;
+        pasangLogo();
+        simpan();
+        toast('Logo toko berhasil diperbarui');
+      });
+    };
+    var btnHL = $('#fHapusLogo');
+    if (btnHL) btnHL.onclick = function () {
+      D.toko.logo = '';
+      var p = $('#praLogoToko'); if (p) p.src = KONFIG.logo || 'img/logo.svg';
+      var fIn = $('#fLogo'); if (fIn) fIn.value = '';
+      pasangLogo();
+      simpan();
+      toast('Logo kembali ke bawaan');
+    };
     var fQ = $('#fQris');
     if (fQ) fQ.onchange = function () {
       var fl = this.files[0];
@@ -850,7 +899,47 @@
       D.kasir.push({ id: uid(), nama: f.elements.nama.value.trim(), pin: f.elements.pin.value, peran: f.elements.peran.value });
       simpan(); f.reset(); renderAtur(); toast('Kasir ditambahkan');
     };
-    $('#daftarKasirAtur').onclick = function (e) { var b = e.target.closest('[data-hk]'); if (b && confirm('Hapus kasir ini?')) { D.kasir = D.kasir.filter(function (k) { return k.id !== b.dataset.hk; }); simpan(); renderAtur(); } };
+    $('#daftarKasirAtur').onclick = function (e) {
+      var bH = e.target.closest('[data-hk]');
+      if (bH && confirm('Hapus kasir ini?')) {
+        D.kasir = D.kasir.filter(function (k) { return k.id !== bH.dataset.hk; });
+        simpan();
+        renderAtur();
+        return;
+      }
+      var bE = e.target.closest('[data-ek]');
+      if (bE) {
+        var targetK = D.kasir.find(function (x) { return x.id === bE.dataset.ek; });
+        if (targetK) {
+          dialog('<h3>Ubah Kasir</h3><form class="form" id="fUbahKasir">' +
+            '<label>Nama kasir<input id="ekNama" value="' + esc(targetK.nama) + '" required></label>' +
+            '<label>PIN 4 angka<input id="ekPin" value="' + esc(targetK.pin) + '" pattern="\\d{4}" inputmode="numeric" maxlength="4" required></label>' +
+            '<label>Peran<select id="ekPeran"><option value="kasir"' + (targetK.peran === 'kasir' ? ' selected' : '') + '>Kasir</option><option value="admin"' + (targetK.peran === 'admin' ? ' selected' : '') + '>Admin</option></select></label>' +
+            '<div class="dlg-aksi"><button class="tombol" value="batal" type="button" id="btnBatalUbahKasir">Batal</button><button class="tombol utama" type="submit">Simpan</button></div>' +
+          '</form>', function (f) {
+            $('#btnBatalUbahKasir', f).onclick = tutupDialog;
+            $('#fUbahKasir', f).onsubmit = function (ev) {
+              ev.preventDefault();
+              var namaBaru = $('#ekNama', f).value.trim();
+              var pinBaru = $('#ekPin', f).value.trim();
+              if (!namaBaru) return toast('Nama wajib diisi');
+              if (!/^\d{4}$/.test(pinBaru)) return toast('PIN harus 4 angka');
+              targetK.nama = namaBaru;
+              targetK.pin = pinBaru;
+              targetK.peran = $('#ekPeran', f).value;
+              simpan();
+              tutupDialog();
+              renderAtur();
+              if (pengguna && pengguna.id === targetK.id) {
+                $('#namaKasir').textContent = targetK.nama;
+                $('#avatarKasir').textContent = inisial(targetK.nama);
+              }
+              toast('Data kasir berhasil disimpan');
+            };
+          });
+        }
+      }
+    };
     $('#btnBackup').onclick = function () { unduh('backup-kasir-' + tglKey(new Date()) + '.json', JSON.stringify(D, null, 1), 'application/json'); };
     $('#fileBackup').onchange = function () {
       bacaFile(this, function (t) {
