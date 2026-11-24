@@ -256,6 +256,26 @@
     r.onload = function () { var im = new Image(); im.onload = function () { var k = Math.min(1, 400 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); cb(c.toDataURL('image/jpeg', 0.8)); }; im.onerror = function () { toast('Berkas bukan gambar'); }; im.src = r.result; };
     r.readAsDataURL(file);
   }
+  function bacaFotoQris(file, cb) {
+    var r = new FileReader();
+    r.onload = function () {
+      var im = new Image();
+      im.onload = function () {
+        var maks = 700;
+        var k = Math.min(1, maks / Math.max(im.width, im.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(im.width * k);
+        c.height = Math.round(im.height * k);
+        var ctx = c.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(im, 0, 0, c.width, c.height);
+        cb(c.toDataURL('image/png'));
+      };
+      im.onerror = function () { toast('Berkas bukan gambar'); };
+      im.src = r.result;
+    };
+    r.readAsDataURL(file);
+  }
   function ilustrasiSvg(p) {
     var j = jenisIlus(p), es = /ice|es\b/i.test(p.varian.map(function (v) { return v.nama; }).join(' '));
     var bentuk = j[1] === 'kopi' && /americano/i.test(p.nama) && es ? 'es' : j[1];
@@ -413,7 +433,7 @@
     dialog('<div class="bayar"><div class="bayar-kiri"><div class="bayar-kepala"><h3>Pembayaran</h3><span class="redup kecil">' + keranjang.reduce(function (s, i) { return s + i.qty; }, 0) + ' item' + (h.diskon ? ' · diskon ' + rp(h.diskon) : '') + '</span></div>' +
       '<div class="total-besar"><small>Total tagihan</small>' + rp(h.total) + '</div>' +
       '<div class="metode" role="radiogroup" aria-label="Metode bayar">' + ['tunai', 'qris', 'transfer'].map(function (m, i) { return '<label><input type="radio" name="metode" value="' + m + '"' + (i ? '' : ' checked') + '>' + IK[m] + '<span>' + { tunai: 'Tunai', qris: 'QRIS', transfer: 'Transfer' }[m] + '</span></label>'; }).join('') + '</div>' +
-      '<div id="areaQris" class="qris" hidden><img src="qris.svg" alt="QRIS toko"><p class="redup kecil">Minta pelanggan memindai, cek notifikasi masuk, lalu selesaikan.</p></div>' +
+      '<div id="areaQris" class="qris" hidden><img id="imgQrisBayar" src="' + esc(D.toko.qris || 'qris.svg') + '" alt="QRIS toko"><p class="redup kecil">Minta pelanggan memindai, cek notifikasi masuk, lalu selesaikan.</p></div>' +
       '<div id="areaTransfer" hidden class="rek"><small class="redup">Rekening tujuan</small><b>' + esc(D.toko.rekening || 'Atur nomor rekening di Pengaturan') + '</b><p class="redup kecil">Cek mutasi sebelum menyelesaikan.</p></div>' +
       '<div class="kembali" id="kembali"><span>Kembalian</span><span>Rp0</span></div></div>' +
       '<div class="bayar-kanan" id="areaTunai"><label class="layar-uang"><small>Uang diterima</small><span class="rp">Rp</span><input id="inBayar" type="number" inputmode="numeric" min="0" value="' + h.total + '"></label>' +
@@ -648,6 +668,8 @@
   function renderAtur() {
     var f = $('#formToko');
     ['nama', 'alamat', 'telp', 'footer', 'rekening'].forEach(function (k) { f.elements[k].value = D.toko[k] || ''; });
+    var imgQ = $('#praQrisToko'); if (imgQ) imgQ.src = D.toko.qris || 'qris.svg';
+    var fQ = $('#fQris'); if (fQ) fQ.value = '';
     $('#daftarKasirAtur').innerHTML = D.kasir.map(function (k) {
       return '<li><span><b>' + esc(k.nama) + '</b> <span class="lencana">' + k.peran + '</span></span>' + (k.id === pengguna.id ? '<span class="redup kecil">sedang masuk</span>' : '<button class="tautan" data-hk="' + k.id + '">Hapus</button>') + '</li>';
     }).join('');
@@ -738,6 +760,24 @@
       ['nama', 'alamat', 'telp', 'footer', 'rekening'].forEach(function (k) { D.toko[k] = f.elements[k].value.trim(); });
       if (D.toko.nama !== namaLama) D.toko.namaDariTema = false;
       simpan(); $('#namaTokoNav').textContent = D.toko.nama; toast('Profil toko disimpan');
+    };
+    var fQ = $('#fQris');
+    if (fQ) fQ.onchange = function () {
+      var fl = this.files[0];
+      if (fl) bacaFotoQris(fl, function (u) {
+        D.toko.qris = u;
+        var p = $('#praQrisToko'); if (p) p.src = u;
+        simpan();
+        toast('Foto QRIS berhasil diperbarui');
+      });
+    };
+    var btnHQ = $('#fHapusQris');
+    if (btnHQ) btnHQ.onclick = function () {
+      D.toko.qris = '';
+      var p = $('#praQrisToko'); if (p) p.src = 'qris.svg';
+      var fIn = $('#fQris'); if (fIn) fIn.value = '';
+      simpan();
+      toast('QRIS kembali ke bawaan');
     };
     $('#formKasir').onsubmit = function (e) {
       e.preventDefault(); var f = e.target;

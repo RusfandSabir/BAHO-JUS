@@ -143,6 +143,15 @@
           <label>Telepon<input name="telp"></label>
           <label>Catatan kaki struk<input name="footer"></label>
           <label>Nama bank &amp; no. rekening (transfer)<input name="rekening"></label>
+          <label>Barcode QRIS
+            <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
+              <img id="praQrisToko" src="qris.svg" alt="QRIS" style="width:68px;height:68px;object-fit:contain;background:#fff;border:1px solid var(--garis);border-radius:var(--r-kecil);padding:4px">
+              <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+                <input type="file" id="fQris" accept="image/*">
+                <button type="button" class="tautan" id="fHapusQris" style="text-align:left;color:var(--merah,#e11d48);font-size:13px">Reset ke QRIS contoh</button>
+              </div>
+            </div>
+          </label>
           <button class="tombol utama">Simpan</button>
         </form>
         <div class="panel">
